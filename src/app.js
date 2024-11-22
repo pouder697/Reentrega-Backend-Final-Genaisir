@@ -1,18 +1,52 @@
-const express = require("express");
-const productRouter = require("./routes/products.router.js");
-const cartsRouter = require("./routes/carts.router.js");
-const app = express();
+import express from 'express';
+import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { engine } from 'express-handlebars';
+import productRouter from './routes/productRoutes.js';
+import cartRouter from './routes/cartRoutes.js';
+import viewsRouter from './routes/viewsRoutes.js';
+
 const PORT = 8080;
+const MONGO_URI = 'mongodb+srv://dbAndy:bz355097pe@cluster0.4ktax.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
-//Middleware para trabajar con JSON
-app.use(express.json());
+// Inicialización de Express
+const app = express();
 
+// Configuración de paths para compatibilidad con ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-//Routes
-app.use("/api/products", productRouter);
-app.use("/api/carts", cartsRouter);
+// Middlewares
+app.use(express.json()); // Parsear JSON
+app.use(express.urlencoded({ extended: true })); // Parsear datos de formularios
+app.use(express.static(path.join(__dirname, 'public'))); // Servir archivos estáticos
 
+// Configuración de Handlebars
+app.engine('handlebars', engine());
+app.set('view engine', 'handlebars');
+app.set('views', path.join(__dirname, 'views'));
 
+// Conexión a la base de datos
+mongoose
+  .connect(MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log('Conexión exitosa a MongoDB'))
+  .catch((err) => console.error('Error conectando a MongoDB:', err));
+
+// Rutas
+app.use('/api/products', productRouter);
+app.use('/api/carts', cartRouter);
+app.use('/', viewsRouter);
+
+// Manejo de rutas no encontradas
+app.use((req, res, next) => {
+  res.status(404).json({ error: 'Ruta no encontrada' });
+});
+
+// Inicio del servidor
 app.listen(PORT, () => {
-    console.log(`Listening in http://localhost:${PORT}`);
-})
+  console.log(`Listening in http://localhost:${PORT}`);
+});
