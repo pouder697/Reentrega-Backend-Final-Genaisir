@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { engine } from 'express-handlebars';
 import productRouter from './routes/products.router.js';
 import cartRouter from './routes/cart.router.js';
-import viewsRouter from './routes/viewsRoutes.js';
+import viewsRouter from './routes/view.router.js';
 
 const PORT = 8080;
 const MONGO_URI = 'mongodb+srv://dbAndy:bz355097pe@cluster0.4ktax.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
