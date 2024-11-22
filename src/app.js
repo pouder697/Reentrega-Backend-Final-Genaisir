@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { engine } from 'express-handlebars';
-import productRouter from './routes/productRoutes.js';
-import cartRouter from './routes/cartRoutes.js';
+import productRouter from './routes/products.router.js';
+import cartRouter from './routes/cart.router.js';
 import viewsRouter from './routes/viewsRoutes.js';
 
 const PORT = 8080;
