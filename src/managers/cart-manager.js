@@ -1,82 +1,69 @@
-const fs = require("fs").promises;
+import Cart from '../models/Cart.js';
 
 class CartManager {
-    constructor(path) {
-        this.path = path;
-        this.carts = [];
-        this.ultId = 0;
-
-        //Cargar los carritos almacenados en el archivo: 
-        this.loadCarts();
+  async createCart() {
+    try {
+      const cart = await Cart.create({ products: [] });
+      return cart;
+    } catch (error) {
+      throw new Error(`Error al crear el carrito: ${error.message}`);
     }
+  }
 
-    async loadCarts() {
-        try {
-            const data = await fs.readFile(this.path, "utf-8");
-            this.carts = JSON.parse(data);
-            if (this.carts.length > 0) {
-                //Verifico si hay por lo menos algun elemento y voy a calcular el ultimo id: 
-                this.ultId = Math.max(...this.carts.map(cart => cart.id));
-                //Utilizo el método map para crear un nuevo array que solo tenga los ids y con Math.Max obtengo el mayor, guardandolo en la propiedad ultId. 
-            }
-        } catch (error) {
-            console.log("Failed to load cart");
-            //Si no existe el archivo, lo voy a crear: 
-            await this.saveCarts();
-        }
+  async getCartById(id) {
+    try {
+      const cart = await Cart.findById(id).populate('products.product');
+      if (!cart) throw new Error('Carrito no encontrado');
+      return cart;
+    } catch (error) {
+      throw new Error(`Error al obtener el carrito: ${error.message}`);
     }
+  }
 
-    async saveCarts() {
-        await fs.writeFile(this.path, JSON.stringify(this.carts, null, 2));
+  async addProductToCart(cartId, productId, quantity = 1) {
+    try {
+      const cart = await Cart.findById(cartId);
+      if (!cart) throw new Error('Carrito no encontrado');
+
+      const productIndex = cart.products.findIndex(p => p.product.toString() === productId);
+      if (productIndex >= 0) {
+        cart.products[productIndex].quantity += quantity;
+      } else {
+        cart.products.push({ product: productId, quantity });
+      }
+
+      await cart.save();
+      return cart;
+    } catch (error) {
+      throw new Error(`Error al agregar el producto al carrito: ${error.message}`);
     }
+  }
 
-    //Metodo para crear un carrito: 
+  async removeProductFromCart(cartId, productId) {
+    try {
+      const cart = await Cart.findById(cartId);
+      if (!cart) throw new Error('Carrito no encontrado');
 
-    async createCart() {
-        const newCart = {
-            id: ++this.ultId,
-            products: []
-        };
-
-        //Este objeto "carrito" lo pusheamos al array: 
-        this.carts.push(newCart);
-
-        //Guardamos el array en el archivo: 
-        await this.saveCarts();
-        return newCart;
+      cart.products = cart.products.filter(p => p.product.toString() !== productId);
+      await cart.save();
+      return cart;
+    } catch (error) {
+      throw new Error(`Error al eliminar el producto del carrito: ${error.message}`);
     }
+  }
 
-    async getCartById(cartId) {
-        try {
-            const cartWanted = this.carts.find(cart => cart.id === cartId);
+  async clearCart(cartId) {
+    try {
+      const cart = await Cart.findById(cartId);
+      if (!cart) throw new Error('Carrito no encontrado');
 
-            if(!cartWanted) {
-                throw new Error("no cart with selected id"); 
-            }
-
-            return cartWanted; 
-        } catch (error) {
-            throw new Error("failed to get carts"); 
-        }
-        
+      cart.products = [];
+      await cart.save();
+      return cart;
+    } catch (error) {
+      throw new Error(`Error al vaciar el carrito: ${error.message}`);
     }
-
-    async addProductToCart(cartId, productId, quantity = 1) {
-      const cart = await this.getCartById(cartId); 
-      const productExists = cart.products.find(product => product.product === productId );
-        //De esta forma chequeo si el producto que estoy recibiendo para agregar al carrito ya esta presente en el. Si existe, modifico la cantidad, si no existe lo agrego. 
-
-        if(productExists) {
-            productExists.quantity += quantity; 
-        } else {
-            cart.products.push({product: productId, quantity}); 
-        }
-
-        //Como aca yo modifique el carrito, tengo que actualizar el archivo. 
-        await this.saveCarts(); 
-        return cart; 
-    }
-
+  }
 }
 
-module.exports = CartManager;
+export default CartManager;
